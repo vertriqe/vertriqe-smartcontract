@@ -1,66 +1,66 @@
-# Vertriqe Energy Tracking Smart Contract
+## Foundry
 
-A Solidity smart contract for tracking energy usage data from IoT devices with aggregation capabilities.
+**Foundry is a blazing fast, portable and modular toolkit for Ethereum application development written in Rust.**
 
-## Features
+Foundry consists of:
 
-- Device registration and management
-- Energy usage data recording
-- Daily and monthly data aggregation
-- Data retention policy implementation
-- Role-based access control for device owners
+-   **Forge**: Ethereum testing framework (like Truffle, Hardhat and DappTools).
+-   **Cast**: Swiss army knife for interacting with EVM smart contracts, sending transactions and getting chain data.
+-   **Anvil**: Local Ethereum node, akin to Ganache, Hardhat Network.
+-   **Chisel**: Fast, utilitarian, and verbose solidity REPL.
 
-## Contract Overview
+## Documentation
 
-The EnergyTracker contract provides the following main functionalities:
+https://book.getfoundry.sh/
 
-- `registerDevice`: Register new energy monitoring devices
-- `recordEnergyUsage`: Record energy consumption data
-- `getDeviceEnergyData`: Retrieve historical energy data
-- `getMonthlyAggregate`: Get monthly usage summaries
-- `cleanupOldData`: Maintain data retention policy
+## Usage
 
-## Development Setup
+### Build
 
-1. Install dependencies:
-```bash
-npm install
-```
-
-2. Run tests:
-```bash
-npx hardhat test
-```
-
-3. Deploy contract:
-```bash
-npx hardhat run scripts/deploy.ts
-```
-
-## Testing
-
-The test suite covers:
-- Device registration scenarios
-- Energy usage recording
-- Data retrieval operations
-- Access control validation
-
-## Technical Details
-
-- Solidity Version: ^0.8.28
-- Framework: Hardhat
-- Testing: Chai & Hardhat Network Helpers
-
-## License
-
-UNLICENSED
-
-
-## Hardhat Commands
 ```shell
-npx hardhat help
-npx hardhat test
-REPORT_GAS=true npx hardhat test
-npx hardhat node
-npx hardhat ignition deploy ./ignition/modules/Lock.ts
+$ forge build
+```
+
+### Test
+
+```shell
+$ forge test
+```
+
+### Format
+
+```shell
+$ forge fmt
+```
+
+### Gas Snapshots
+
+```shell
+$ forge snapshot
+```
+
+### Anvil
+
+```shell
+$ anvil
+```
+
+### Deploy
+
+```shell
+$ forge script script/Counter.s.sol:CounterScript --rpc-url <your_rpc_url> --private-key <your_private_key>
+```
+
+### Cast
+
+```shell
+$ cast <subcommand>
+```
+
+### Help
+
+```shell
+$ forge --help
+$ anvil --help
+$ cast --help
 ```
