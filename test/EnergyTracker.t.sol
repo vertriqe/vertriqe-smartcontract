@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity ^0.8.13;
+pragma solidity ^0.8.28;
 
 import {Test, console} from "forge-std/Test.sol";
 import {EnergyTracker} from "../src/EnergyTracker.sol";
@@ -20,96 +20,100 @@ contract EnergyTrackerTest is Test {
 
     function test_RegisterDevice() public {
         string memory deviceId = "device1";
-        string memory deviceType = "solar_panel";
 
-        energyTracker.registerDevice(deviceId, deviceType);
-        EnergyTracker.Device memory device = energyTracker.getDeviceInfo(deviceId);
+        energyTracker.registerDevice(deviceId);
+        EnergyTracker.Device memory device = energyTracker.getDevice(deviceId);
 
-        assertEq(device.deviceId, deviceId);
-        assertEq(device.deviceType, deviceType);
         assertEq(device.owner, owner);
-        assertTrue(device.isActive);
+        assertEq(device.regTime, block.timestamp);
     }
 
     function test_RegisterDeviceFailsOnDuplicate() public {
         string memory deviceId = "device1";
         
-        energyTracker.registerDevice(deviceId, "solar_panel");
+        energyTracker.registerDevice(deviceId);
         
         vm.expectRevert("Device already registered");
-        energyTracker.registerDevice(deviceId, "solar_panel");
+        energyTracker.registerDevice(deviceId);
     }
 
     function test_RecordEnergyUsage() public {
         string memory deviceId = "device1";
         
-        energyTracker.registerDevice(deviceId, "solar_panel");
-        energyTracker.recordEnergyUsage(
-            deviceId,
-            100,
-            "smart_meter",
-            "{'temperature': 25}"
-        );
+        energyTracker.registerDevice(deviceId);
+        energyTracker.recordEnergyUsage(deviceId, 100);
 
-        uint256 today = block.timestamp - (block.timestamp % 86400);
-        EnergyTracker.EnergyData[] memory data = energyTracker.getDeviceEnergyData(deviceId, today, today);
+        uint256 today = block.timestamp / 1 days;
+        EnergyTracker.EnergyData memory data = energyTracker.getEnergyData(deviceId, today);
         
-        assertEq(data[0].energyUsage, 100);
-        assertEq(data[0].dataSource, "smart_meter");
+        assertEq(data.value, 100);
+        assertEq(data.timestamp, block.timestamp);
     }
 
     function test_RecordEnergyUsageFailsForNonOwner() public {
         string memory deviceId = "device1";
         
-        energyTracker.registerDevice(deviceId, "solar_panel");
+        energyTracker.registerDevice(deviceId);
         
         vm.prank(otherAccount);
         vm.expectRevert("Not device owner");
-        energyTracker.recordEnergyUsage(
-            deviceId,
-            100,
-            "smart_meter",
-            "{'temperature': 25}"
-        );
+        energyTracker.recordEnergyUsage(deviceId, 100);
     }
 
-    function test_GetMonthlyAggregate() public {
+    function test_GetOwnerDevices() public {
+        string memory deviceId1 = "device1";
+        string memory deviceId2 = "device2";
+        
+        energyTracker.registerDevice(deviceId1);
+        energyTracker.registerDevice(deviceId2);
+
+        string[] memory devices = energyTracker.getOwnerDevices(owner);
+        
+        assertEq(devices.length, 2);
+        assertEq(devices[0], deviceId1);
+        assertEq(devices[1], deviceId2);
+    }
+
+    function test_DataRetentionCleanup() public {
         string memory deviceId = "device1";
         
-        energyTracker.registerDevice(deviceId, "solar_panel");
-        energyTracker.recordEnergyUsage(deviceId, 100, "smart_meter", "{}");
-
-        uint256 currentMonth = energyTracker.getCurrentMonthTimestamp();
-        EnergyTracker.MonthlyAggregate memory monthlyData = energyTracker.getMonthlyAggregate(deviceId, currentMonth);
+        energyTracker.registerDevice(deviceId);
         
-        assertEq(monthlyData.totalEnergyUsage, 100);
-        assertEq(monthlyData.daysRecorded, 1);
+        // Record data for a specific day  
+        uint256 oldDay = block.timestamp / 1 days;
+        energyTracker.recordEnergyUsage(deviceId, 100);
+        
+        // Move forward exactly DATA_RETENTION_DAYS
+        vm.warp(block.timestamp + energyTracker.DATA_RETENTION_DAYS() * 1 days);
+        
+        // Record new data, which should trigger cleanup of data at oldDay
+        energyTracker.recordEnergyUsage(deviceId, 200);
+        
+        // Old data should be cleaned up (at exactly DATA_RETENTION_DAYS ago)
+        EnergyTracker.EnergyData memory oldData = energyTracker.getEnergyData(deviceId, oldDay);
+        assertEq(oldData.timestamp, 0);
+        assertEq(oldData.value, 0);
+        
+        // New data should exist
+        uint256 newDay = block.timestamp / 1 days;
+        EnergyTracker.EnergyData memory newData = energyTracker.getEnergyData(deviceId, newDay);
+        assertEq(newData.value, 200);
     }
 
-    function test_GetDeviceInfoFailsForNonExistentDevice() public {
-        vm.expectRevert("Device not found");
-        energyTracker.getDeviceInfo("nonexistent");
+    function test_EmptyDeviceReturnsZeroAddress() public {
+        string memory deviceId = "nonexistent";
+        
+        EnergyTracker.Device memory device = energyTracker.getDevice(deviceId);
+        assertEq(device.owner, address(0));
+        assertEq(device.regTime, 0);
     }
 
-    function test_CleanupOldDataWithValidBatchSize() public {
+    function test_EmptyEnergyDataReturnsZero() public {
         string memory deviceId = "device1";
+        uint256 someDate = 12345;
         
-        energyTracker.registerDevice(deviceId, "solar_panel");
-        energyTracker.recordEnergyUsage(deviceId, 100, "smart_meter", "{}");
-
-        // Should not revert with valid batch size
-        energyTracker.cleanupOldData(deviceId, 10);
-    }
-
-    function test_CleanupOldDataFailsWithInvalidBatchSize() public {
-        string memory deviceId = "device1";
-        
-        energyTracker.registerDevice(deviceId, "solar_panel");
-        
-        vm.expectRevert("Invalid batch size");
-        energyTracker.cleanupOldData(deviceId, 0);
-
-        vm.expectRevert("Invalid batch size");
-        energyTracker.cleanupOldData(deviceId, 101);
+        EnergyTracker.EnergyData memory data = energyTracker.getEnergyData(deviceId, someDate);
+        assertEq(data.timestamp, 0);
+        assertEq(data.value, 0);
     }
 }

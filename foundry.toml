@@ -5,9 +5,31 @@ libs = ["lib"]
 solc = "0.8.28"
 
 [rpc_endpoints]
+# Ethereum Networks
 sepolia = "${SEPOLIA_URL}"
+mainnet = "${MAINNET_URL}"
+
+# Polygon Networks
+polygon_amoy = "${POLYGON_AMOY_URL}"
+polygon = "${POLYGON_MAINNET_URL}"
+
+# Other Layer 2 Networks
+arbitrum = "${ARBITRUM_URL}"
+arbitrum_sepolia = "${ARBITRUM_SEPOLIA_URL}"
+optimism = "${OPTIMISM_URL}"
+base = "${BASE_URL}"
 
 [etherscan]
+# Ethereum
 sepolia = { key = "${ETHERSCAN_API_KEY}", url = "https://api-sepolia.etherscan.io/api" }
+mainnet = { key = "${ETHERSCAN_API_KEY}", url = "https://api.etherscan.io/api" }
+
+# Polygon
+polygon_amoy = { key = "${POLYGONSCAN_API_KEY}", url = "https://api-amoy.polygonscan.com/api" }
+polygon = { key = "${POLYGONSCAN_API_KEY}", url = "https://api.polygonscan.com/api" }
+
+# Arbitrum
+arbitrum = { key = "${ARBISCAN_API_KEY}", url = "https://api.arbiscan.io/api" }
+arbitrum_sepolia = { key = "${ARBISCAN_API_KEY}", url = "https://api-sepolia.arbiscan.io/api" }
 
 # See more config options https://github.com/foundry-rs/foundry/blob/master/crates/config/README.md#all-options
